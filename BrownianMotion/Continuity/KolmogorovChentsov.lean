@@ -27,9 +27,9 @@ lemma lintegral_div_edist_le_sum_integral_edist_le (hT : EMetric.diam (Set.univ 
     (hβ : 0 < β) (hp : 0 < p) (hq : 0 < q) {J : Set T} (hJ : Countable J) :
     ∫⁻ ω, ⨆ (s : J) (t : J), edist (X s ω) (X t ω) ^ p / edist s t ^ (β * p) ∂P
       ≤ ∑' (k : ℕ), 2 ^ (k * β * p)
-          * ∫⁻ ω, ⨆ (s : J) (t : J)
-            (_he : edist s t ≤ 2 * 2⁻¹ ^ k * (EMetric.diam (.univ : Set T) + 1)),
-            edist (X s ω) (X t ω) ^p ∂P := by
+          * ∫⁻ ω, ⨆ (s : J)
+              (t : {t : J // edist s t ≤ 2 * 2⁻¹ ^ k * (EMetric.diam (.univ : Set T) + 1)}),
+                edist (X s ω) (X t ω) ^p ∂P := by
   let η k := 2⁻¹ ^ k * (EMetric.diam (Set.univ : Set T) + 1)
   have hη_ge (k : ℕ) : 2⁻¹ ^ (k : ℝ) ≤ η k := by simp [η, mul_add]
   have hη_succ (k : ℕ) : η (k + 1) = 2⁻¹ * η k := by simp [η, pow_add, mul_assoc, mul_comm]
@@ -73,13 +73,8 @@ lemma lintegral_div_edist_le_sum_integral_edist_le (hT : EMetric.diam (Set.univ 
   · rw [ENNReal.inv_le_iff_inv_le, ← ENNReal.inv_rpow, mul_assoc, ENNReal.rpow_mul,
       ENNReal.rpow_le_rpow_iff (by positivity)]
     exact le_trans (hη_ge k) lb
-  apply le_trans
-  · apply le_iSup (fun (_ :edist s t ≤ 2 * 2⁻¹ ^ k * (EMetric.diam (.univ : Set T) + 1))
-      ↦ edist (X s ω) (X t ω) ^ p)
-    rwa [mul_assoc]
   apply le_iSup_of_le (i := ⟨s, hs⟩)
-  apply le_iSup_of_le (i := ⟨t, ht⟩)
-  exact le_refl _
+  exact le_iSup_of_le (i := ⟨⟨t, ht⟩, by rwa [mul_assoc]⟩) (le_refl _)
 
 noncomputable
 -- the `max 0 ...` in the blueprint is performed by `ENNReal.ofReal` here
@@ -94,14 +89,25 @@ lemma constL_lt_top (hc : c ≠ ∞) (hd_pos : 0 < d) (hp_pos : 0 < p) (hdq_lt :
     constL T c d p q β < ∞ := by
   sorry
 
-theorem finite_kolmogorov_chentsov (hT : HasBoundedInternalCoveringNumber (Set.univ : Set T) c d)
+theorem finite_kolmogorov_chentsov
     (hX : IsKolmogorovProcess X P p q M)
-    (hd_pos : 0 < d) (hp_pos : 0 < p) (hdq_lt : d < q)
+    (hd_pos : 0 < d) (hp_pos : 0 < p) (jd_pos : 0 < d) (hdq_lt : d < q)
     (hβ_pos : 0 < β) (hβ_lt : β < (q - d) / p)
-    (T' : Set T) (hT' : T'.Finite) :
+    (T' : Set T) (hT_fin : T'.Finite) (hT_bd : HasBoundedInternalCoveringNumber T' c d):
     ∫⁻ ω, ⨆ (s : T') (t : T'), edist (X s ω) (X t ω) ^p / edist s t ^ (β * p) ∂P
       ≤ M * constL T c d p q β := by
-  sorry
+  wlog hc : c ≠ ∞
+  · sorry
+  wlog h_diam : EMetric.diam (.univ : Set T) < ∞
+  · sorry
+  apply le_trans
+  refine lintegral_div_edist_le_sum_integral_edist_le h_diam hX hβ_pos hp_pos ?_ hT_fin.countable
+  · exact lt_trans hd_pos hdq_lt
+  apply le_trans
+  apply ENNReal.tsum_le_tsum
+  intro n
+  apply mul_le_mul_left'
+  apply finite_set_bound_of_edist_le_of_le_diam' hT_bd hX hc hd_pos hp_pos hdq_lt (by simp)
 
 theorem countable_kolmogorov_chentsov (hT : HasBoundedInternalCoveringNumber (Set.univ : Set T) c d)
     (hX : IsKolmogorovProcess X P p q M)
