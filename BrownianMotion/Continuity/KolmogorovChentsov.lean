@@ -97,6 +97,8 @@ theorem finite_kolmogorov_chentsov
     ∫⁻ ω, ⨆ (s : T') (t : T'), edist (X s ω) (X t ω) ^p / edist s t ^ (β * p) ∂P
       ≤ M * constL T c d p q β := by
   simp [constL, ← ENNReal.tsum_mul_left]
+  wlog hM : (M : ℝ≥0∞) ≠ 0
+  · sorry
   wlog h_diam_zero : 0 < EMetric.diam (.univ : Set T)
   · sorry
   have h_diam_real : 0 < (EMetric.diam (.univ : Set T)).toReal :=
@@ -109,7 +111,13 @@ theorem finite_kolmogorov_chentsov
   apply ENNReal.tsum_le_tsum
   intro k
   wlog hc : c ≠ ∞
-  · sorry
+  · simp [not_ne_iff.mp hc]
+    repeat rw [ENNReal.top_mul]
+    · rw [ENNReal.mul_top hM]
+      exact le_top
+    · have : 0 < (k + 1) * d := by positivity
+      simp [this]
+    · simp [le_of_lt hdq_lt]
   apply le_trans
   · apply mul_le_mul_left'
     apply finite_set_bound_of_edist_le hT'_bd hX hc jd_pos hp_pos hdq_lt (by simp)
