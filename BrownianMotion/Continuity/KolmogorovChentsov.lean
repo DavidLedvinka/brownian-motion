@@ -99,6 +99,18 @@ theorem Set.iUnion_le_nat : ⋃ n : ℕ, {i | i ≤ n} = Set.univ :=
  subset_antisymm (Set.subset_univ _)
   (fun i _ ↦ Set.mem_iUnion_of_mem i (Set.mem_setOf.mpr (le_refl _)))
 
+protected lemma ENNReal.mul_div_cancel_left {a b : ℝ≥0∞} (hb₀ : a ≠ 0) (hb : a ≠ ∞) :
+    a * b / a = b := sorry
+
+theorem ENNReal.tsum_lt_top_of_ratio_test_tendsto_lt_one
+    {f : ℕ → ℝ≥0∞} {l : ℝ≥0∞} (hl₁ : l < 1) (hf : ∀ᶠ n in atTop, f n ≠ 0)
+    (h : Tendsto (fun n ↦ f (n + 1) / f n) atTop (𝓝 l)) : ∑' (n : ℕ), f n < ∞ := by
+  sorry
+
+-- theorem tbd
+--     {α : Type*} {l : Filter α} {f g : α → ℝ≥0∞} {a b : ℝ≥0∞} (ha : a ≠ ∞) (hb : b ≠ ∞)
+--     (hg : Tendsto g l atTop) (h : Tendsto (f / g) l 𝓝 ()
+
 -- modelled after `CompactExhaustion`
 structure FiniteExhaustion {α : Type*} (s : Set α) where
   toFun : ℕ → Set α
@@ -250,10 +262,37 @@ def constL (T : Type*) [PseudoEMetricSpace T] (c : ℝ≥0∞) (d p q β : ℝ) 
       * (4 ^ d * (ENNReal.ofReal (Real.logb 2 c.toReal + (k + 2) * d)) ^ q
         + Cp d p q)
 
-lemma constL_lt_top (hc : c ≠ ∞) (hd_pos : 0 < d) (hp_pos : 0 < p) (hdq_lt : d < q)
+#check MeasureTheory.SimpleFunc.div_apply
+
+lemma constL_lt_top (hT : EMetric.diam (Set.univ : Set T) < ∞)
+    (hc : c ≠ ∞) (hd_pos : 0 < d) (hp_pos : 0 < p) (hdq_lt : d < q)
     (hβ_pos : 0 < β) (hβ_lt : β < (q - d) / p) :
     constL T c d p q β < ∞ := by
-  sorry
+  unfold constL
+  apply ENNReal.mul_lt_top (by finiteness)
+  apply ENNReal.tsum_lt_top_of_ratio_test_tendsto_lt_one (l := 2 ^ (β * p - (q - d)))
+  · sorry
+  · sorry
+  conv =>
+    enter [1, n]
+    rw [ENNReal.mul_div_mul_comm (by simp) (by simp), Nat.cast_add, add_mul, Nat.cast_one,
+      one_mul, ENNReal.rpow_add _ _ (by positivity) (by finiteness),
+      ENNReal.mul_div_cancel_left (by simp) (by finiteness)]
+  conv => enter [3, 1]; rw [← mul_one (_ ^ _)]
+  apply ENNReal.Tendsto.const_mul
+  conv => enter [1]; change (fun n ↦ _) / (fun n ↦ _)
+  · sorry
+  simp
+
+  -- apply ENNReal.Tendsto.mul
+  -- ·
+  -- · simp
+  -- · sorry
+  -- · simp
+
+
+
+
 
 theorem finite_kolmogorov_chentsov
     (hT : HasBoundedInternalCoveringNumber (Set.univ : Set T) c d)
@@ -380,11 +419,12 @@ lemma IsMeasurableKolmogorovProcess.ae_iSup_rpow_edist_div_lt_top
     {T' : Set T} (hT' : T'.Countable) :
     ∀ᵐ ω ∂P, ⨆ (s : T') (t : T'), edist (X s ω) (X t ω) ^ p / edist s t ^ (β * p) < ∞ := by
   have : Countable T' := hT'
+  have h_diam : EMetric.diam .univ < ∞ := hT.diam_lt_top hd_pos
   refine ae_lt_top' ?_ ((countable_kolmogorov_chentsov hT hX.isKolmogorovProcess hd_pos hp_pos
     hdq_lt hβ_pos T').trans_lt ?_).ne
   · refine AEMeasurable.iSup (fun s ↦ AEMeasurable.iSup (fun t ↦ ?_))
     exact AEMeasurable.div (hX.measurable_edist.aemeasurable.pow_const _) (by fun_prop)
-  · exact ENNReal.mul_lt_top (by simp) (constL_lt_top hc hd_pos hp_pos hdq_lt hβ_pos hβ_lt)
+  · exact ENNReal.mul_lt_top (by simp) (constL_lt_top h_diam hc hd_pos hp_pos hdq_lt hβ_pos hβ_lt)
 
 omit [MeasurableSpace E] [BorelSpace E] in
 def holderSet (X : T → Ω → E) (T' : Set T) (p β : ℝ) : Set Ω :=
